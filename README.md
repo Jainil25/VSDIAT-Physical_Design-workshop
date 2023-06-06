@@ -296,14 +296,253 @@ All these 8 steps are fed in together as a configuration file to GUNA.
 
 | Timing defintion	 | Value |
 | ------------- | ------------- |
-| slew_low_rise_thr  | 20%  |
-| slew_low_rise_thr | 80% |
+| slew_low_rise_thr  | 20% value |
+| slew_low_rise_thr | 80% value |
 |slew_low_fall_thr	|20% value |
 |slew_high_fall_thr |	80% value |
 |in_rise_thr	|50% value |
 |in_fall_thr	|50% value |
 |out_rise_thr	|50% value |
 |out_fall_thr	|50% value |
+
+### Propagation Delay 
+
+The time difference between when the transitional input reaches 50% of its final value and when the output reaches 50% of its final value. Poor choice of threshold values lead to negative delay values. Even thought you have taken good threshold values, sometimes depending upon how good or bad the slew, the dealy might be still +ve or -ve.
+
+Propagation delay = time(out_thr) - time(in_thr)
+
+### Transition Time
+
+The time it takes the signal to move between states is the transition time , where the time is measured between 10% and 90% or 20% to 80% of the signal levels.
+
+Rise transition time = time(slew_high_rise_thr) - time (slew_low_rise_thr)
+
+Low transition time = time(slew_high_fall_thr) - time (slew_low_fall_thr)
+
+# Day 3 Design Library Cell using ngspice simulations
+
+## ngspice simulations for CMOS inverter
+
+ngspice is opesoure engine where simulations are done.
+
+### IO Placer revision
+
+PnR is an iterative flow, thus we may alter the environment variables in the fly to see how our design has changed.
+Say I want to alter my pin arrangement along the core from being randomly placed at equvi distance to another placement. I would simply set the IO mode variable on the command prompt as shown below.
+set ::env(FP_IO_MODE) 2
+
+### SPICE Deck Creation and Simulation for CMOS inverter
+
+We need to establish a SPICE Deck before running a SPICE simulation. The following information is provided by SPICE Deck:
+
+Connectivity of the substrate, Vdd, Vss, and Vin components. The MOS's threshold voltage is adjusted by the substrate.
+
+component values include supply voltage, output load, input gate voltage, and PMOS and NMOS values.
+
+Nodes must be identified and given names in order to define the SPICE Netlist. As an illustration, M1 out in vdd vdd pmos w = 0.375u L = 0.25u,  cload out 0 10f.
+
+simulation instructions
+
+Model file: details of transistor-related parameters CMOS simulation with varying width and length. Regardless of switching, the waveform's shape is essentially the same.
+
+![spice](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/ebcfeeb9-c98a-4726-9523-f1156257b1c4)
+
+The waveform shows that the features hold true for all CMOS sizes. Therefore, CMOS is a reliable circuit and is used in the design of logic gates. 
+
+
+### Switching Threshold Vm
+
+The Vin = Vout point on the DC Transfer characteristics is the switching threshold of a CMOS inverter.
+Since both transistors are currently turned on and in the saturation region, there is a significant likelihood that leakage current, which is current that flows directly from VDD to Ground, will occur.
+
+
+![2 spice](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/38d70dc0-6465-4de2-8993-94bf7884e4a6)
+
+## Git clone vsdiatdesign
+
+clone the required mag files and spicemodels of inverter,pmos and nmos sky130. The command to clone files from github link is:
+
+git clone https://github.com/nickson-jose/vsdstdcelldesign.git
+The information of inverter layout is mentioned in sky130_inv.mag file.
+![day 3 git clone](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/aefc2797-10bb-43ce-9f8a-ea6d5ed57ae2)
+
+copy the sky130A.tech file to vsdstdcelldesign by using the command:
+
+cp sky130A.tech /home/vsduser/Desktop/work/tools/openlane_working_dir/openlane/vsdstdcelldesign/
+
+![Screenshot from 2023-06-03 11-38-15](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/c7bb1c67-70b1-4c8d-82f6-5c5d3491d001)
+
+Press "G" to see the blocks
+
+![box inverter](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/925d04e9-83af-4a75-a531-c11cea5dac5f)
+
+## CMOS 16 Mask Fab
+
+
+1. Selecting a substrate = Layer where the IC is fabricated. Most commonly used is P-type substrate
+2. Creating active region for transistor = Separate the transistor regions using SiO2 as isolation
+
+Mask 1 = Covers the photoresist layer that must not be etched away (protects the two transistor active regions)
+Photoresist layer = Can be etched away via UV light
+Si3N4 layer = Protection layer to prevent SiO2 layer to grow during oxidation (oxidation furnace)
+SiO2 layer = Grows during oxidation (LOCOS = Local Oxidation of Silicon) and will act as isolation regions between transistors or active regions
+
+3. N-Well and P-Well Fabrication = Fabricate the substrate needed by PMOS (N-Well) and NMOS (P-Well)
+
+Phosporus (5 valence electron) is used to form N-well
+Boron (3 valence electron) is used to form P-Well.
+Mask 2 protects the N-Well (PMOS side) while P-Well (NMOS side) is being fabricated then Mask 3 while N-Well (PMOS side) is being fabricated
+
+4. Formation of Gate = Gate fabrication affects threshold voltage. Factors affecting threshold voltage includes:
+Main parameters are:
+Doping Concentration = Controlled by ion implantation (Mask 4 for Boron implantation in NMOS P-Well and Mask 5 for Arsenic implantation in PMOS N-Well)
+Oxide capacitance = Controlled by oxide thickness (SiO2 layer is removed then rebuilt to the desire thickness)
+Mask 6 is for gate formation using polysilicon layer.
+
+5. Lightly Doped Drain formation = Before forming the source and drain layer, lightly doped impurity is added:
+
+Mask 7 for N- implantation (lightly doped N-type) for NMOS
+Mask 8 for P- implantation (lightly doped P-type) for PMOS.
+Heavily doped impurity (N+ for NMOS and P+ for PMOS) is for the actual source and drain but the lightly doped impurity will help maintain spacing between the source and drain and prevent hot electron effect and short channel effect.
+
+6. Source and Drain Formation = Mask 9 is for N+ implantation and Mask 10 for P+ implantation
+
+Channeling is when implantations dig too deep into substrate so add screen oxide before implantation
+The side-wall spacers maintains the N-/P- while implanting the N+/P+
+
+7. Form Contacts and Interconnects = TiN is for local interconnections and also for bringing contacts to the top. TiS2 is for the contact to the actual Drain-Gate-Source. Mask 11 is for etching off the TiN interconnect for the first layer contact.
+
+8. Higher Level Metal Formation = We need to planarize first the layer via CMP before adding a metal interconnect. Aluminum contact is used to connect the lower contact to higher metal layer. Process is repeated until the contact reached the outermost layer.
+
+Mask 12 is for first contact hole
+Mask 13 is for first Aluminum contact layer
+Mask 14 is for second contact hole
+Mask 15 is for second Aluminum contact layer.
+Mask 16 is for making contact to topmost layer.
+
+## SKY130 basic layer layout and LEF using inverter
+
+We can see the layers needed for the CMOS inverter in Layout. PMOS and NMOS are connected to the inverter.
+The NMOS source is connected to ground (here, VGND), the PMOS source is connected to VDD (here, VPWR), and the drains of both PMOS and NMOS are connected to each other and fed to the output (here, Y). The First layer in skywater130 is localinterconnect layer(locali) , above that metal 1 is purple color and metal 2 is pink color. . Place the pointer over the region where you wish to examine links between two distinct components, then press S three times. The connectivity details are provided by the tkson window.
+
+
+## Design Standard Cell and SPICE extraction in MAGIC
+
+In the Tkson window, we must first specify the bounding box's width and height. Let's assume that the BBOX has a 1.38u width and a 2.72u height. Property Fixed BBOX (0 0 1.32 2.72) is the command to assign these values to magic. 
+
+The layout of the Vdd and GND segments in the metal 1 layer, as well as their corresponding connections, are then determined. We extract the spice and then simulate it in order to understand the logical operation of the inverter. By opening the TKCON window, we may extract it from the spice.
+
+Get the current directory path with pwd. 
+
+Using the command "extract all," a file called sky130_inv.ext has been created.
+
+create spice file using .ext file to be used with our ngspice tool - the commands are
+ext2spice cthresh 0 rthresh 0 - extracts parasatic capcitances also since these are actual layers - nothing is created in the folder ext2spice - a file sky130_inv.spice has been created.
+
+## SKY130 Tech file
+### Final Spice Deck creation
+
+View the contents of the spice deck. The connections between the pmos and nmos nodes are defined in the spice file subcircuit(subckt)
+
+Sky130_fd_pr_nfet_01v8 for NMOS XO Y A VGND VGND. Cell_name Drain Gate Source Substrate model_name is the correct format. VPWR VPWR sky130_fd_pr_pfet_01v8 for PMOS X1 Y A VPWR VPWR. Cell_name Drain Gate Source Substrate model_name is the correct format.
+
+
+We would like to define the following connections and additional nodes for these in the spice file for transient analysis.
+
+
+VGND to VSS
+
+Supply voltage from VPWR to Ground - extra nodes here will be 0 and VDD with a value of 3.3v
+
+sweep in/pulse between A pin and VGND (0) Before, editing the file, make sure scaling is proper, we measure the value of the gride size from the magic layout and define using  .option scale=0.01u in the Deck file.
+
+Now keeping the connection in mind, define the required commands in the file. Along with this we need to include libs for nmos nshort.lib and pmos pshort.lib and define transient analysis commands too. We comment the subckt since we are trying to input the controls and transient analysis also. Model names are changed to nshort_model.0 and pshort_model.0 according to the libs of nmos and pmos.
+
+These voltage sources and simulation commands are defined in the Deck file. VDD VPWR 0 3.3V VSS VGND 0 0V Va A VGND PULSE(0V 3.3V 0 0.1ns 0.1ns 2ns 4ns) .tran 1n 20n .control run .endc .end
+
+![spice new](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/f6ae6372-48d6-46de-ae7a-8263c60fec3d)
+
+
+### Using ngspice
+
+Spice Deck is done and now to run spice simulation invoke ngspice in the tool and pass the source file.
+
+ngspice sky130_inv.spice
+
+On the prompt you can see the values the ngspice has taken. To see the plot, use
+
+plot y vs time a .
+
+Now we have the transient response, the next objective is to characterise the cell.
+
+![Screenshot from 2023-06-04 08-52-36](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/ee0ddfa5-5385-4515-a10a-de4623c91627)
+
+## CMOS Inverter Standard cell
+
+Four timing parameters determine the inverter standard cell's characterisation.
+
+Time it takes for the production to increase from 20% to 80% of its maximum value. Time it takes for the output to decrease from 80% of the maximum value to 20% of it Cell Rise delay is the interval between a 50% increase in output and a 50% decrease in input. Cell Delay caused by a 50% drop in output compared to a 50% increase in input
+
+
+You may calculate the aforementioned timing parameters by taking note of various values from the ngspice waveform.
+
+Rise Transition : 2.25421 - 2.18636 = 0.006785 ns / 67.85ps Fall Transitio : 4.09605 - 4.05554 = 0.04051ns/40.51ps Cell Rise Delay : 2.21701 - 2.14989 = 0.06689ns/66.89ps  Cell Fall Delay : 4.07816 - 4.05011 = 0.02805ns/28.05ps
+
+## LAB 
+### MAGIC and Skywater's DRC
+
+refer to "http://opencircuitdesign.com/magic.com" to get knowledge about Magic.
+
+Sky130 pdk URL: "https://skywater-pdk.readthedocs.io/en/main/"
+
+### Sky130s pdk intro and Steps to download labs
+
+setup to view the layouts
+
+1)For extracting and generating views, Google/skywater repo files were built with Magic
+
+2)Technology file dependency is more for any layout. hence, this file is created first.
+
+3)Since, Pdk is still under development, there are some unfinished tech files and these are packaged for magic along with lab exercise layout and bunch of stuff into the tar ball
+
+We can download the packaged files from web using the following command in your terminal. 
+
+wget http://opencircuitdesign.com/open_pdks/archive/drc_tests.tgz
+
+then use:  tar - tap archiver create and extract a tar archive file.
+
+to extract tar file:  tar -xfz drc_tests.tgz
+
+![Screenshot 2023-06-04 012111](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/63b421f7-c448-452e-809b-8162cc3e66b4)
+
+
+Now run MAGIC
+
+For better graphics use command magic -d XR 
+
+Now, lets see an example of simple failing set of rules of metal 3 layer. you can either run this by magic command line magic -d XR metal3.mag or from the magic console window, menu - file - open -load file9here, metal3.mag)
+
+![after tar image](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/23f1e72d-b758-44eb-90c6-04e728310ab3)
+
+We have few drc errors and calls out a rule number. You can see these rules on google skywater pdk read the doc page. From metal 3.4 drc rules, Via2 must be enclosed by metal3 by atleast 0.065u. Magic tablet is of using many derived layers and in which via is one. Via represents the area filled with contact cuts. Draw a large area of M3 contatc using mouse pointer hovering over the m3contact icon on the side toolbar. Now with cursor box around the m3 area, type command cif see VIA2 . This create contatc cuts which are bloack sqaure shaped. These dont exist on the drawn layout, but they represent as mask layer VIA2, that will end up in the GDS Futher details about these are metioned in cif output section in tech file. The view we see is feedback entry and can dismiss it with feed clear We use snap internal command snap int for the cursor to move along the edge of the grid. There are few spacing rukes metioned like spacing between Via2 and metal 3 is 0.065u. If we put the curosor between the contact cut and drawn via edge and click box in tkcon command, we will get the distance. The tool automatically places and do spacing of the contact, there wont be any DRC errors and the distance will not be smaller than the specified one.
+
+![Screenshot 2023-06-04 014705](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/730a7db3-8f64-41a4-8511-e95668a585eb)
+
+### Load Sky130 tech rules for drc challenges
+
+First load the poly file by load poly.mag on tkcon window.
+
+Finding the error by mouse cursor and find the box area, Poly.9 is violated due to spacing between polyres and poly
+
+![Screenshot 2023-06-04 020707](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/dc914568-7890-4216-b6a3-2f217ac6c896)
+
+Now, poly.9 is spacing between polyres to poly and poly to diff/tap. Once we resolve the polyres to poly, poly to tap / diff got violations by providing spacing for tap/diff. in tech,
+
+Again load the tech file, check drc and the issue will be solved
+
+
+
+
 
 
 
