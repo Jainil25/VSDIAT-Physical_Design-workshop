@@ -462,6 +462,9 @@ These voltage sources and simulation commands are defined in the Deck file. VDD 
 
 ![spice new](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/f6ae6372-48d6-46de-ae7a-8263c60fec3d)
 
+![Screenshot 2023-06-03 214734](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/ff4a0a43-52fe-487d-93fa-202566b4d1e3)
+
+
 
 ### Using ngspice
 
@@ -509,6 +512,9 @@ We can download the packaged files from web using the following command in your 
 
 wget http://opencircuitdesign.com/open_pdks/archive/drc_tests.tgz
 
+![Screenshot 2023-06-04 012005](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/fa1514be-b209-4e5a-b7f9-a70bd3133d3e)
+
+
 then use:  tar - tap archiver create and extract a tar archive file.
 
 to extract tar file:  tar -xfz drc_tests.tgz
@@ -540,13 +546,244 @@ Now, poly.9 is spacing between polyres to poly and poly to diff/tap. Once we res
 
 Again load the tech file, check drc and the issue will be solved
 
+# Day 4 Pre-layout Timing analysis and CTS
+
+## Timing Analysis and Clock Tree Synthesis (CTS)
+
+### Standard Cell LEF generation
+
+The whole mag information is not required for placement. All that is necessary are the cell's PR border, I/O ports, power rails, and ground rails. In the LEF file, this information is defined. The primary goal is to take lef out of the mag file and plug it into our design process.
+
+### Grid into Track info
+
+Track: A line or path on which metal layer routing is drawn. The standard cell's height is specified by the track.
+
+A few rules must be fulfilled in order to implement our own stdcell.
+
+I/O ports must be located at the point where horizontal and vertical rails converge.
+Standard cell width and height are odd multiples of vertical track pitch and horizontal track pitch.
+
+li1 X 0.23 0.46 
+li1 Y 0.17 0.34
+
+![tracks info](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/33ba8b38-6b07-4b2f-872c-f04336a89514)
+
+This information is defined in tracks.info. The syntax is metal_layer direction offset spacing
+
+Create Port Definition:
+
+certain properties and definitions need to be set to the pins of the cell. For LEF files, a cell that contains ports is written as a macro cell, and the ports are the declared as PINs of the macro.
+
+The way to define a port is through Magic console and following are the steps:
+
+In Magic Layout window, first source the .mag file for the design (here inverter). Then Edit >> Text which opens up a dialogue box.
+When you double press S at the I/O lables, the text automatically takes the string name and size. Ensure the Port enable checkbox is checked and default checkbox is unchecked
+
+After defining ports, the next step is setting port class and port use attributes.
+
+####Setting port class:
+
+Select port A in magic:
+
+port class input
+port use signal
+Select Y area
+
+port class output
+port class signal
+Select VPWR area
+
+port class inout
+port use power
+Select VGND area
+
+port class inout
+port use ground
+
+
+### Custom cell naming and lef extraction
+
+Name the custom cell through tkcon window as sky130_vsdinv.mag. This gets created in openlane/vsdstdcelldesign directory
+
+use "lef.write" to carry out lef extraction
+
+![lef write](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/89eba7ad-cf97-4bc2-b335-73be4982c6ae)
+
+### Integrating custom cell in OpenLANE
+In order to include our custom standard cell to ur design and run the first step synthesis, copy the sky130_vsdinv.lef file to the designs/picorv32a/src directory. Since abc maps the standard cell to a library, there must be a library that defines the CMOS inverter. The sky130_fd_sc_hd_typical.lib as well as fast and slow libs files from vsdstdcelldesign/libs directory needs to be copied to the designs/picorv32a/src directory. If you are interested to check our cell in lib and lef, go to lib and lef folders
+
+Next, modifiy the config.tcl by adding few extra definitions like abc synthesis mapping to typical.lib, other three are used for sta analysis and to include extra lefs(our design lef) to flow
+
+set ::env(LIB_SYNTH) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130/sky130_fd_sc_hd__typical.lib"
+set ::env(LIB_SLOWEST) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130/sky130_fd_sc_hd__slow.lib"
+set ::env(LIB_FASTEST) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130/sky130_fd_sc_hd__fast.lib"
+set ::env(LIB_TYPICAL) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130/sky130_fd_sc_hd__typical.lib"
+set ::env(EXTRA_LEFS) [glob $::env(OPENLANE_ROOT)/designs/$::env(DESIGN_NAME)/src/*.lef]
+
+Change the default of "SYNTH_STRATEGY" from "AREA 0" to "DELAY 0" in configuration/synthesis.tcl
+
+In order to integrate the standard cell in the OpenLANE flow, invoke openLANE as usual and carry out following steps:
+
+prep -design picorv32a -tag 03-06-08-35 -overwrite 
+set lefs [glob $::env(DESIGN_DIR)/src/*.lef]
+add_lefs -src $lefs
+run_synthesis
+
+after synthesis, my timing is clean.
+
+![customised cell in synthesis](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/f5fed763-cf8b-4734-868f-2b5aa4af052e)
+
+
+![slack successful](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/95a58484-dcca-4a73-b94d-24b89598becb)
+
+
+now run the following commands:
+init_floorplan
+place_io
+global_placement_or
+tap_decap_or
+(since run_floorplan was giving error)
+
+![detailed placement](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/1852fc90-47cb-4f1f-9a8e-f32a2e9557df)
+
+To check the layout invoke magic from the results/placement directory:
+
+magic -T /home/vsduser/Desktop/work/tools/openlane_working_dir/openlane/pdks/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.lef def read picorv32a.def &
+
+![Screenshot 2023-06-05 143250](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/1d8a7682-42e0-408a-b6a5-e7569ca7b514)
+
+Take the cursor to the cell and press "S". then write "expand" in tkcon.
+
+![Screenshot 2023-06-05 212545](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/88d95f60-b9b9-447a-b85c-ac80b2607b7d)
+
+### Post-synthesis timing analysis Using OpenSTA
+Create 2 files. my_base.sdc and pre_sta.conf
+
+my_base.sdc:
+
+![my_base](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/6961098f-d250-47e8-be4a-90682d756523)
+
+pre_sta:
+
+![presta](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/ea5619e7-72af-4153-9afe-fb50333779c8)
+
+Now type "sta pre_sta.conf"
+
+Since I had no violations, I skipped this step.
+
+The PLL, which contains an internal circuit with cells and some logic, generates the clock. Depending on the ckt, there could be changes in the clock generation. Collectively, these fluctuations are referred to as clock uncertainty. Jitter is one of the parameters in that. It is unlikely that the clock will arrive at that precise moment without any adjustments. Because of this, it is known as clock_uncertainty. Margin, Skew, and Jitter enter clock_uncertainty.
+
+ Clock jitter is the movement of the edge away from its initial location.
+
+
+According to the timing report, we can increase slack by replacing the cells with larger ones that have a higher drive strength, and we will notice a noticeable difference in the slack.
+
+## Clock Tree Synthesis using Tritoncts
+
+In this stage clock is propagated and make sure that clock reaches each and every clock pin from clock source with mininimum skew and insertion delay. Inorder to do this, we implement H-tree using mid point strategy. For balancing the skews, we use clock invteres or bufferes in the clock path. Before attempting to run CTS in TritonCTS tool, if the slack was attempted to be reduced in previous run, the netlist may have gotten modified by cell replacement techniques. Therefore, the verilog file needs to be modified using the write_verilog command. Then, the synthesis, floorplan and placement is run again. To run CTS use the below command:
+
+run_cts
+
+After CTS run, my slack values are
+
+setup : 4.76 , Hold : 0.3945
+
+Since, clock is propagated, from this stage, we do timing analysis with real clocks. From now post cts analysis is performed by operoad within the openlane flow
+openroad
+write_db pico_cts.db
+read_db pico_cts.db
+read_verilog /openLANE_flow/designs/picorv32a/runs/03-07_11-25/results/synthesis/picorv32a.synthesis_cts.v
+read_liberty $::env(LIB_SYNTH_COMPLETE)
+link_design picorv32a
+read_sdc /openLANE_flow/designs/picorv32a/src/my_base.sdc
+set_propagated_clock (all_clocks)
+report_checks -path_delay min_max -format full_clock_expanded -digits 4
+
+After performing Timing analysis, my slack values are
+
+ Setup : 4.0565 , Hold : -0.1673
+
+Use these commands if there are violations and change their values:
+echo $::env(CTS_CLK_BUFFER_LIST)
+set $::env(CTS_CLK_BUFFER_LIST) [lreplace $::env(CTS_CLK_BUFFER_LIST) 0 0]
+echo $::env(CTS_CLK_BUFFER_LIST)
+
+# Day 5
+## Final steps in RTL2GDS
+### Maze Routing and Lee's algorithm
+
+A physical connection between two pins is called routing. The algorithm uses the pins as its source and target, and it determines the optimum route between them if a connection can be made between them.
+
+The Maze Routing algorithm is one such technique, and the Lee algorithm is one potential remedy for Maze routing issues.
+
+Earlier, when customising the cell, we established a grid. Similar to how a floorplan generates a grid for routing. Using a routing grid, the Lee algorithm establishes the source and target locations and then seeks the shortest/best route between them.
+
+From 1 until it reaches the target (let's say 7, for example), it makes labels for the nearby grids around the source. There will be numerous routes from 1 to 7, including zigzag and L-shaped routes. Lee Alogirthm favours the best path, which is L-shaped and does not zigzag. It must follow the zigzag course if there are no L-shaped routes. The global routing is done using this.
+
+There are restrictions on it. It first generates the maze before beginning to number the moves from the source to the target. While routing with just two pins is simple, doing it with millions of pins takes a lot of time. There are more analogies that operate in a similar way.
+
+
+
+### Design rule check(DRC)
+
+
+DRC verifies whether a design meets the predefined process technology rules given by the foundry for its manufacturing. DRC checking is an essential part of the physical design flow and ensures the design meets manufacturing requirements and will not result in a chip failure. It defines the Quality of chip. They are so many DRCs, let us see few of them
+
+Design rules for physical wires
+
+Minimum width of the wire
+Minimum spacing between the wires
+Minimum pitch of the wire To solve signal short violation, we take the metal layer and put it on to upper metal layer. we check via rules
+Via width
+via spacing
+
+## Power Distribution Network generation
+Run "gen_pdn" in OpenLANE 
+we can check whether PDN has been created or no by check the current def environment variable:  echo S::env(CURRENT_DEF).
+
+Once the command is given, power distribution netwrok is generated.
+The power distribution network has to take the design_cts.def as the input def file.
+Power rings,strapes and rails are created by PDN.
+From VDD and VSS pads, power is drawn to power rings.
+Next, the horizontal and vertical strapes connected to rings draw the power from strapes.
+Stapes are connected to rings and these rings are connected to std cells. So, standard cells get power from rails.
+The standard cells are designed such that it's height is multiples of the vertical tracks /track pitch. Here, the pitch is 2.72. Only if the above conditions are adhered it is possible to power the standard cells.
+There are definitions for the straps and the rails. In this design, straps are at metal layer 4 and 5 and the standard cell rails are at the metal layer 1. Vias connect accross the layers as required.
+![pdn_gen](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/f17bbd17-f4c2-4264-805c-79a7cb5298b9)
+
+
+## Routing
+Basically, the entire routing procedure is quite hard in all routing EDA tools, including OpenLANE and Commercial EDA tools, due to the vast amount of space. Global routing and detailed routing were the two steps they separated the routing process into.
+
+Two different engine types carry out two steps of routing:
+
+
+Global routing is a type of 3D routing graph that divides the routing region into rectangular grid cells. FASTE ROUTE is the engine that does global routing.
+
+Detailed routing - Finer grids and routing guides used to implement physical wiring TritonRoute Fast Route generates the routing guides, whereas TritonRoute uses the Global Route and then completes the routing with a few strategies and optimisations to find the best route connect the pins.
 
 
 
 
+## Features of TritonRoute
+Performs Initial detail route
+Honouring pre-processed route guides - attempts to route within the route guides
+      Initial route guide - see the directions of the prefered route guides. If any non direction routing guides are found it divides it into unit widths.
+      Splitting - It splits non direction routing guides into unit widths
+      Merging - guides that are orthogonal(touching guides) to to the prefered guides are merged.
+      Bridging - gudies that are parallel to the perfered routing guides are bridged with an additional layer
+      preprocessed guides
+      Works on MILP(Mixed Integer linear programming) based panel routing scheme with Intra-layer parallel and Inter-layer sequential routing framework
+Now use "run_routing" in OpenLANE
 
+![routing ](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/cc2126f4-ef39-4304-8e75-9b02618b3b77)
+    
+ To see the design:
+    
+ magic -T /home/vsduser/Desktop/work/tools/openlane_working_dir/openlane/pdks/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.lef def read picorv32a.routing.def &
 
-
+   ![rout](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/1d2e5933-89ad-4147-b832-fc4f29b2c8b1)
+![final](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/67139965-5eb9-4148-b222-475ec66c9fad)
 
 
  
