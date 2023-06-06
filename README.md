@@ -218,6 +218,97 @@ Detailed Placement = placement with legalization where the standard cells are pl
 
 # Lab Day 2
  We will now execute floorplan.
+ 
  command: run_floorplan
+ 
+ ![floorplan](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/e512f240-4843-4e86-8485-ddba74ae7430)
+ 
+After the floorplan run, a .def file will have been created within the results/floorplan directory. We may review floorplan files by checking the floorplan.tcl. The system defaults will have been overriden by switches set in conifg.tcl and further overriden by switches set in sky130A_sky130_fd_sc_hd_config.tcl.
+
+To view the floorplan, Magic is invoked after moving to the results/floorplan directory:
+
+magic -T /home/vsduser/Desktop/work/tools/openlane_working_dir/pdks/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.lef def read picorv32a.floorplan.def
+
+![magic floorplan 1](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/d4c53cc3-137c-4b2b-8237-d60a58b7bd13)
+
+One can zoom into Magic layout by selecting an area with left and right mouse click followed by pressing "z" key.
+
+
+![magic floorplan 2](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/c592ed7f-567d-447e-8fa9-4c6a907ed4b9)
+![magic floorplan 3](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/86b6709d-d339-4353-bb38-7e5d479f01c1)
+![magic floorplan 4](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/46d54e39-b36c-44b0-a62d-c608805f500a)
+
+
+## Placement
+
+We will execute the placement step in 2 steps:
+
+Global Placement: Cells will be placed randomly in optimal positions which may not be legal and cells may overlap. Optimization is done through reduction of half parameter wire length. Detailed Placement: It alters the position of cells post global placement so as to legalise them. Legalisation of cells is important from timing point of view.
+
+Optimization is stage where we estimate the lenght and capictance, based on that we add buffers. Ideally, Optimization is done for better timing.
+
+command: magic -T /home/vsduser/Desktop/work/tools/openlane_working_dir/pdks/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.lef def read picorv32a.placement.def
+
+note: use this command in the results/placement directory
+
+![placement 1](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/8d6f512e-a0b4-42ed-a620-b36acd63792b)
+
+![magic placement](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/04ca48d5-4862-496c-b320-08177851f032)
+
+The EDA tool always requires data from the library of gates, which contains all standard cells (and, or, buffer gates,...), macros, IPs, decaps, etc., during all RTL-to-GDSII stages. The library may have distinct flavours for the same cells (various sizes, delays, and threshold voltage). Greater drive strength can drive longer and thicker wires thanks to larger cell sizes. Smaller threshold voltage devices switch more slowly than those with larger threshold voltages (due to larger size).
+
+A single cell needs to go through the cell design flow. The inputs to make a single cell comes from the foundry Process Design Kits:
+
+DRC & LVS Rules = tech files and poly subtrate paramters (CUSTOME LAYOUT COURSE)
+
+SPICE Models = Threshold, linear regions, saturation region equations with added foundry parameters. Including NMOS and PMOS parameteres (Ciruit Deisgn and Spice simulation Course)
+
+User defined Spec = Cell height (separation between power and ground rail), Cell width (depends on drive strength), supply voltage, metal layer requirement (which metal layer the cell needs to work)
+
+The library cell developer must adhere to the rules given on the inputs so that when the cell is used on a real design, there will be no errors. Next is design 
+
+the library cell:
+
+Design the circuit function (Output: circuit design language (CDL))
+
+Model the pmos and nmos that meets input library requirement
+
+Layout the design using Euler's path and sticky diagram to produce best area. This can be done on magic layout tool.The outputs are:
+
+GDSII (layout file)
+
+LEF (defines the width and height of cell)
+
+extract spice netlist .cir (parasitics of each element of cell: resistance, capacitance) Afte design is characterization using GUNA software, where the outputs are timing, noise, and power characterization. .
+
+A typical standard cell characterization flow that is followed in the industry includes the following steps:
+
+a.Read in the models and tech files
+b.Read extracted spice Netlist
+c.Recognise behavior of the cells
+d.Read the subcircuits
+e.Attach power sources
+f.Apply stimulus to characterization setup
+g.Provide neccesary output capacitance loads
+h.Provide neccesary simulation commands
+
+All these 8 steps are fed in together as a configuration file to GUNA.
+
+| Timing defintion	 | Value |
+| ------------- | ------------- |
+| slew_low_rise_thr  | 20%  |
+| slew_low_rise_thr | 80% |
+|slew_low_fall_thr	|20% value |
+|slew_high_fall_thr |	80% value |
+|in_rise_thr	|50% value |
+|in_fall_thr	|50% value |
+|out_rise_thr	|50% value |
+|out_fall_thr	|50% value |
+
+
+
+
+
+
  
  
