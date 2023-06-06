@@ -18,12 +18,17 @@ By offering pre-designed and well tested components that are simple to include i
 ### Risc-V
 We may communicate with computers by using RISC-V, an open instruction set architecture. A computer programme is first translated to its equivalent Assembly Language Programme, which is nothing more than the conversion of Hexadecimal code, using a RISC-V Assembly language programme. From there, the binary language of 0s and 1s is created. And these 0s and 1s are nothing more than digital signals that can be used in hardware/layout. A HDL code or RTL code that implements the RISC-V architecture and from which the real layout can be mapped serves as an intermediate step between this conversion.
 
+![243388287-47c315a7-20f0-47d3-b9ce-bf95fb704aa6](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/5e2e4306-27e8-4468-8c38-817fb0c952e7)
+
+
 ## SOC using OpenLANE
 Digital ASIC A design process that is automated needs a number of components. The components are:
 
 EDA Tools
 RTL (Hardware Description Language) Models
+
 PDK Data
+
 Let's discuss PDK data.
 
 PDK data (Process Design Kit): We require a set of files in order to simulate a fabrication process for the EDA tools. These are a part of the kit. It serves as the link between the fabrication team and the designers. Design guidelines, Device models, Digital Standard cell Libraries, I/O lib, etc. are all included in PDK.
@@ -31,17 +36,28 @@ PDK data (Process Design Kit): We require a set of files in order to simulate a 
 Google and Skywater collaborated on an agreement to open source PDK for Skywater's 130nm technology. The first ever openssource pdk was issued by Google. The pdk solely contains data information needed to implement an ASIC successfully using openroad or ocla tools.
 
 Few Opensources for these three components are:
+
 RTL Designs :
+
 librecores.org
+
 opecores.org
+
 github.com
 
+![l1new](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/8e158ad2-2a4c-4d6a-87a4-5a9875845f0e)
+
+
 EDA Tools :
+
 Qflow
+
 OpenROAD
+
 OpenLANE
 
 PDK DATA
+
 Google +skywater 130nm
 
 ## RTL to GDS2 flow 
@@ -83,15 +99,25 @@ As mentioned, Openlane is an open-access, full-service EDA system that may be us
 Push-button flow, automatically created GDS2; autonomous.
 
 Interactive: This flow is more carefully planned out and implemented step by step.
+![openlane-flow](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/4fbb5203-0b64-42a3-8516-cf9e19e154b9)
+
 
 The Design Set Exploration function of Openlane allows it to identify the ideal set of parameters and constraints that can be applied to the flow. It basically runs through many configurations and recommends the best option to be utilised as flow limitations.
+
 The flow starts with RTL synthesis and ends with final layout in the GDS format. OpenLANE is based on several OpenSOurce projects such as:
+
 OpenROAD
+
 Magic VLSI Layout Tool
+
 QFlow
+
 ABC
+
 Fault
+
 KLayout
+
 Yosys
 
 OpenROAD App -
@@ -158,6 +184,40 @@ Now we can use run_synthesis
 after synthesis, we can have a look at the at the statistics report to calculate flop ratio. It is defined as:
 flop ratio = no_of_flops/no _of_cells
 ![yosys_dff stat](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/805bd461-9032-4432-93f3-bebf80bb0ad5)
+
 flop ratio(in my case is): 1613/18036 = 0.08943.
 
-# Day 2
+# Day 2: Good vs Bad Floorplan and Library cells
+
+## Floorplan stage
+
+Find height and width of core and die:
+
+Core is where the logic blocks are placed and thus seats at the centre of the die. The dimensions of each standard cell on the netlist determine the width and height. Utilization factor is area occupied by netlist divided by total area of the core. Utilisation factor in a real-world scenario is between 0.5 and 0.6. This is space occupied by netlist only, the remaining space is for routing and more additional cells. Only an aspect ratio of one will result in a square-shaped core because aspect ratio is defined as (height)/(width) of core.
+
+Preplaced cell:
+
+These are reusable complex logicblocks or modules or IPs or macros that is already implemented (memory, clock-gating cell, mux, comparator...) . The placement on the core is user-defined and must be done before placement and routing (thus preplaced cells). The automated place and route tools will not be able to touch and move these preplaced cells so this must be very well defined
+
+Decoupling Capacitors:
+Surround preplaced cells with decoupling capacitors. The intricate preplaced logic block needs a lot of current from the power supply to switch the current. However, due to the resistance and inductance of the wire, there will be a voltage drop because of the distance between the main power supply and the logic block. The voltage at the logic block may then no longer fall within the noise margin range (logic is unstable) as a result of this. Utilising decoupling capacitors close to the logic block will provide the necessary current for the logic block to switch inside the noise margin range.
+
+Power planning:
+The creation of a power grid network to evenly distribute power to every component of the design is known as the power planning process. This process addresses the unwelcome voltage drop and ground bounce. The metal wires that make up the power distribution network have a resistance that results in steady state IR Drop. Stable-state IR Drop lowers the voltage differential between local power and ground, which lowers the speed and noise immunity of the local cells and macros.
+
+Pin placement: 
+The position of the pin affects the timing delays and the number of buffers required, so pin placement is critical in floorplanning. Pin placement options include equidistant placement and high-density placement.
+
+### Placement is done on two stages:
+
+Global Placement = placement with no legalizations and goal is to reduce wirelength. It uses Half Perimeter Wirelength (HPWL) reduction model.
+
+Detailed Placement = placement with legalization where the standard cells are placed on stadard rows, abutted, and must have no overlaps
+
+ Imp note: the parameter values for vertical metal layer and horizontal metal layer will be 1 more than that specified in the files
+
+# Lab Day 2
+ We will now execute floorplan.
+ command: run_floorplan
+ 
+ 
