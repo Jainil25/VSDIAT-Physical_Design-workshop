@@ -65,3 +65,63 @@ After routing, we conduct verification during signoff.
 
 Design rule checks (DRC): This type of physical verification ensures that our design complies with design rules. (carried out by MAGIC) Checks whether our layout corresponds with the netlist schematic using the LVS method.(NETGEN AND MAGIC)
 Verification of timing: Static Timing Analysis: Verifies that our design complies with all timing requirements and is operating at the specified frequency.
+
+## Introduction to OpenLane and Strive Chipset
+Users generally face quite a few challenges when using open source EDA, problems like missing EDA tools for some steps, calibration or tool qualifications are some challenges faced.
+Openlane, an open source EDA, is a comprehensive end-to-end solution for rtl2gds flow that consists of many phases and optimised flow. The striVe series of open access chips is available from Efabless. It is a full-featured chipset with open access, open PDK, open RTLs, and open EDA for everything.
+The primary objective of the OpenLane programme is to automatically build a GDS2 file without human intervention, and the die that is produced must be clean.
+
+There shouldn't be any LVS infractions on the chipset.
+
+There shouldn't be any DRC infractions on the chipset.
+
+There shouldn't be any timing issues with the chipset.
+
+## OpenLane ASIC Flow
+As mentioned, Openlane is an open-access, full-service EDA system that may be used to toughen chips or macros. OpenLane operates in two different ways:
+
+Push-button flow, automatically created GDS2; autonomous.
+
+Interactive: This flow is more carefully planned out and implemented step by step.
+
+The Design Set Exploration function of Openlane allows it to identify the ideal set of parameters and constraints that can be applied to the flow. It basically runs through many configurations and recommends the best option to be utilised as flow limitations.
+The flow starts with RTL synthesis and ends with final layout in the GDS format. OpenLANE is based on several OpenSOurce projects such as:
+OpenROAD
+Magic VLSI Layout Tool
+QFlow
+ABC
+Fault
+KLayout
+Yosys
+
+OpenROAD App -
+OpenRoad app is automatic placement and routing tool and it performs the following function –
+
+Floorplanning
+
+Powerplanning
+
+Placement: Global and Detailed
+
+Post Placement Optimization
+
+Clock Tree Synthesis
+
+Routing: Global and Detailed
+
+### Logic Equivalence Checking –
+To determine whether altering the design has had any impact on the chip's functionality or not, LEC must be carried out after carrying out a number of iterations
+
+### Antenna Rule Violation –
+A metal wire segment that has been constructed and is long enough can function as an antenna. It can destroy our transistor during manufacture if charge builds up on it. The task of the router is to limit the length of the wire.
+
+We used OpenLANE in a preventative manner. When placing the cells, we made a fake antenna diode and positioned it next to each one. Replace the fake with the genuine one when Magic checks the routed layout for antenna checkers and reports a violation on a cell input pin.
+
+Signoff in openLANE STA is done by openSTA
+
+physical signoff consists of LVS and DRC.
+DRC and spice extraction from layout are done via magic.
+Magic and Netgen are used for LVS
+extracted spice by magic vs verilog netlist
+
+## Lab-Day 1
