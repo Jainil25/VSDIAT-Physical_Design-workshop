@@ -125,3 +125,39 @@ Magic and Netgen are used for LVS
 extracted spice by magic vs verilog netlist
 
 ## Lab-Day 1
+The directory which we will be using for entire implementation: 
+/home/vsduser/Desktop/work/tools/openlane_working_dir/openlane
+Next up is pdks
+Foundary files are made compatible only with commerical EDA tools. OpenPDKS has mitigated ths issue by implementing scripts and files that convert these foundary level PDKS to be compatible with OpenSource EDA Tools.
+
+In pdks directory .we have one of such variant file sky130A
+WE will be using sky130_fd_sc__hd, where:
+fd = foundry name of skywater
+sc = standard cell
+hd = high density
+
+To get started, we need to type the following commands(one by one) in /home/vsduser/Desktop/work/tools/openlane_working_dir/openlane 
+docker
+./flow.tcl -interactive
+package require openlane 0.9
+This will launch OpenLANE successfully
+![Initialise OpenLANE](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/8185017d-a4be-4af2-9fb1-cab0c46d16f5)
+
+now if we will create a design by typing:
+prep -design picorv32a
+This will create a sub folder named "runs" with the date when this command was executed.
+![prep -design](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/e1d6c637-bd0c-4b51-93e7-e4b0396f443f)
+
+Here's an image which displays contents of some important directories discussed above:
+![picorv32a contents](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/ad483a36-6ffa-415a-bf97-794d97e7c88e)
+
+
+Now we can use run_synthesis
+![run_synthesis](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/9360dcc4-0563-40e9-9631-53ed24e12509)
+
+after synthesis, we can have a look at the at the statistics report to calculate flop ratio. It is defined as:
+flop ratio = no_of_flops/no _of_cells
+![yosys_dff stat](https://github.com/Jainil25/VSDIAT-Physical_Design-workshop/assets/105313126/805bd461-9032-4432-93f3-bebf80bb0ad5)
+flop ratio(in my case is): 1613/18036 = 0.08943.
+
+# Day 2
